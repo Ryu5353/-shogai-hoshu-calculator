@@ -1,0 +1,10 @@
+{
+  "name": "障害福祉・報酬かんたん計算機",
+  "short_name": "障害報酬計算機",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#111827",
+  "lang": "ja",
+  "description": "障害福祉サービスの報酬を概算するサ責向け計算機"
+}
