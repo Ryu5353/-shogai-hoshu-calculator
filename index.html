@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f6f4a">
+<title>障害福祉 報酬計算機・完全版</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;color:#1f2937;background:#f4f7f5}
+*{box-sizing:border-box}body{margin:0;background:#f4f7f5}header{background:#1f6f4a;color:#fff;padding:18px 16px;position:sticky;top:0;z-index:10}
+h1{font-size:20px;margin:0 0 4px}.sub{font-size:12px;opacity:.9}main{max-width:760px;margin:auto;padding:12px}
+.card{background:#fff;border-radius:14px;padding:16px;margin:12px 0;box-shadow:0 2px 10px #0000000d}h2{font-size:16px;margin:0 0 12px}
+label{display:block;font-size:13px;font-weight:700;margin:10px 0 5px}select,input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:9px;font-size:16px;background:#fff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.checks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.check{display:flex;align-items:center;gap:7px;background:#f7faf8;border:1px solid #e2e8e4;border-radius:9px;padding:9px;font-size:13px}
+.check input{width:auto}.hidden{display:none!important}button{width:100%;padding:12px;border:0;border-radius:10px;background:#1f6f4a;color:#fff;font-size:16px;font-weight:700;margin-top:12px}
+button.secondary{background:#e8efeb;color:#1f6f4a}.result{background:#eef7f1;border-radius:12px;padding:14px;margin-top:12px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-bottom:1px solid #dce8e0;font-size:14px}.row:last-child{border-bottom:0}
+.big{font-size:28px;font-weight:800;color:#14532d;margin-top:10px}.muted{font-size:12px;color:#667085;line-height:1.65}
+.item{border:1px solid #e2e8e4;border-radius:10px;padding:10px;margin-top:8px}.item b{display:block}.notice{background:#fff7df;border-left:4px solid #d97706;padding:10px;border-radius:8px;font-size:12px;line-height:1.65}
+.tag{display:inline-block;background:#e7eee9;color:#1f6f4a;padding:3px 7px;border-radius:99px;font-size:11px;margin:2px}.readonly{background:#f3f4f6}.notice.hidden{display:none!important}
+@media(max-width:500px){.grid,.checks{grid-template-columns:1fr}}
+</style>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#111827">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="障害報酬計算機">
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js'));
+}
+</script>
+</head>
+<body>
+<header><h1>障害福祉・報酬かんたん計算機</h1><div class="sub">令和8年度・令和8年6月以降／堺市向け初期設定</div></header>
+<main>
+
+<section class="card">
+<h2>① 事業所設定</h2>
+<div class="grid">
+<div><label>地域単価（円／単位）</label><input id="price" type="number" step="0.01" value="10.60"></div>
+<div><label>処遇改善加算</label><select id="rate">
+<option value=".431">Ⅱイ（43.1%）</option><option value=".441">Ⅱロ（44.1%）</option>
+<option value=".446">Ⅰイ（44.6%）</option><option value=".456">Ⅰロ（45.6%）</option>
+<option value=".376">Ⅲ（37.6%）</option><option value=".302">Ⅳ（30.2%）</option><option value="0">なし</option>
+</select></div>
+</div>
+<div class="checks">
+<label class="check"><input id="night" type="checkbox"> 夜間・早朝（+25%）</label>
+<label class="check"><input id="midnight" type="checkbox"> 深夜（+50%）</label>
+<label class="check"><input id="two" type="checkbox"> 2人介助（行動援護：2人の行動援護従事者）（×200%）</label>
+<label class="check"><input id="samebuild" type="checkbox"> 同一建物等（×90%）</label>
+</div>
+<p class="muted">あなたの事業所のWAM情報に合わせ、初期値は「堺市・特定事業所加算なし・処遇改善Ⅱ」。処遇改善Ⅱのイ／ロは計画書で確認してください。</p>
+</section>
+
+<section class="card">
+<h2>② サービスを選択</h2>
+<label>サービス</label>
+<select id="service">
+<option value="body">居宅介護：身体介護</option>
+<option value="house">居宅介護：家事援助</option>
+<option value="outbody">居宅介護：通院等介助（身体介護を伴う）</option>
+<option value="outno">居宅介護：通院等介助（身体介護を伴わない）</option>
+<option value="ride">居宅介護：通院等乗降介助</option>
+<option value="heavy">重度訪問介護</option>
+<option value="escort">同行援護</option>
+<option value="behavior">行動援護</option>
+<option value="custom">その他：単位数を入力</option>
+</select>
+<label>計画上の標準時間（時間）</label><input id="hours" type="number" min="0.25" step="0.5" value="1" inputmode="decimal">
+<p class="muted" id="timehint">例：0.5＝30分、1.5＝1時間30分、2.5＝2時間30分。サービスごとの時間区分を自動判定します。</p>
+<div id="timewarning" class="notice hidden"></div>
+<div class="grid"><div><label>自動計算された基本単位数</label><input id="units" class="readonly" type="number" min="0" readonly></div>
+<div><label>月の回数</label><input id="count" type="number" min="1" value="1"></div></div>
+<div id="custombox" class="hidden"><label>その他：基本単位数を入力</label><input id="customUnits" type="number" min="0" step="1"></div>
+
+<h2 style="margin-top:18px">③ 個別加算・減算（必要な場合）</h2>
+<div id="options"></div>
+<button onclick="calc()">計算する</button>
+<div id="out" class="result hidden"></div>
+<button class="secondary" onclick="addMonth()">この内容を月間一覧へ追加</button>
+</section>
+
+<section class="card">
+<h2>④ 月間売上シミュレーション</h2>
+<div id="list"></div><div id="sum" class="result hidden"></div>
+<button class="secondary" onclick="clearMonth()">月間一覧をクリア</button>
+</section>
+
+<section class="card">
+<h2>⑤ 人件費を引いた簡易収支</h2>
+<div class="grid"><div><label>ヘルパー時給（円）</label><input id="wage" type="number" value="1500"></div>
+<div><label>実働時間</label><input id="workhours" type="number" step=".25" value="1"></div></div>
+<button class="secondary" onclick="profit()">差引を計算</button><div id="profit" class="result hidden"></div>
+</section>
+
+<section class="card">
+<div class="notice"><b>重要：</b>このツールは「サービス単位を選んで概算する」ためのものです。実際の国保連請求では、同一月の基本報酬・各加算等を合算した所定単位数に処遇改善加算率を掛けます。また、減算、時間帯、2人介助（行動援護：2人の行動援護従事者）、特別地域、利用者・事業所の状況等で変動します。請求確定用ではなく、サ責が売上構造を把握するための管理用です。</div>
+<p class="muted">厚生労働省「令和8年度 障害福祉サービス費等の報酬算定構造」を基に、訪問系サービスの主要な時間区分を登録しています。制度改定時はデータ更新が必要です。</p>
+</section>
+</main>
+
+<script>
+const data={
+body:{step:.5,bands:[[0,256],[.5,404],[1,587],[1.5,669],[2,754],[2.5,837]],tail:{from:3,base:921,inc:.5,add:83}},
+house:{step:.25,bands:[[0,106],[.5,153],[.75,197],[1,239],[1.25,275]],tail:{from:1.5,base:311,inc:.25,add:35}},
+outbody:{step:.5,bands:[[0,256],[.5,404],[1,587],[1.5,669],[2,754],[2.5,837]],tail:{from:3,base:921,inc:.5,add:83}},
+outno:{step:.5,bands:[[0,106],[.5,197],[1,275]],tail:{from:1.5,base:345,inc:.5,add:69}},
+ride:{fixed:102,step:.5},
+heavy:{step:.5,bands:[[0,186],[1,277],[1.5,369],[2,461],[2.5,553],[3,644],[3.5,736]],segments:[{from:4,to:8,base:821,inc:.5,add:85},{from:8,to:12,base:1505,inc:.5,add:85},{from:12,to:16,base:2184,inc:.5,add:81},{from:16,to:20,base:2834,inc:.5,add:86},{from:20,to:24,base:3520,inc:.5,add:80}]},
+escort:{step:.5,bands:[[0,191],[.5,302],[1,436],[1.5,501],[2,566],[2.5,632]],tail:{from:3,base:697,inc:.5,add:66}},
+behavior:{step:.5,bands:[[0,288],[.5,437],[1,619],[1.5,762],[2,905],[2.5,1047],[3,1191],[3.5,1334],[4,1479],[4.5,1623],[5,1764],[5.5,1904],[6,2046],[6.5,2192],[7,2340],[7.5,2485]]},
+custom:{custom:true,step:.5}
+};
+const service=document.getElementById("service"),hours=document.getElementById("hours"),units=document.getElementById("units"),options=document.getElementById("options");
+function fmtTime(h){let w=Math.floor(h),m=Math.round((h-w)*60);return m?`${w}時間${m}分`:`${w}時間`;}
+function validStep(h,step){return Math.abs(h/step-Math.round(h/step))<1e-8;}
+function unitFor(k,h){let d=data[k];if(d.custom)return +document.getElementById("customUnits").value||0;if(d.fixed)return d.fixed;if(d.segments){for(const q of d.segments){if(h>=q.from&&h<q.to)return q.base+Math.floor((h-q.from)/q.inc+1e-9)*q.add;}if(h>=d.segments.at(-1).from){let q=d.segments.at(-1);return q.base+Math.floor((h-q.from)/q.inc+1e-9)*q.add;}}
+if(d.tail&&h>=d.tail.from)return d.tail.base+Math.floor((h-d.tail.from)/d.tail.inc+1e-9)*d.tail.add;
+for(let i=d.bands.length-1;i>=0;i--)if(h>=d.bands[i][0])return d.bands[i][1];return 0;}
+function refresh(){let k=service.value,d=data[k],cb=document.getElementById("custombox"),warn=document.getElementById("timewarning");cb.classList.toggle("hidden",!d.custom);hours.disabled=!!d.fixed||!!d.custom;hours.classList.toggle("readonly",!!d.fixed||!!d.custom);hours.step=d.step||.5;warn.classList.add("hidden");
+if(d.fixed){hours.value=1;document.getElementById("timehint").textContent="このサービスは1回102単位です。時間は単位計算に使いません。";}
+else if(d.custom){hours.value=1;document.getElementById("timehint").textContent="その他は基本単位数を直接入力します。";}
+else{if(!validStep(+hours.value||1,d.step))hours.value=d.step;document.getElementById("timehint").textContent=`例：0.5＝30分、1.5＝1時間30分、2.5＝2時間30分（このサービスは${d.step===.25?"15分":"30分"}刻み）`;}
+renderOptions();updateUnits();}
+function updateUnits(){let k=service.value,d=data[k],h=+hours.value||0,w=document.getElementById("timewarning");w.classList.add("hidden");if(d.custom){units.value="";return;}if(d.fixed){units.value=d.fixed;return;}if(h<=0){units.value="";return;}if(!validStep(h,d.step)){w.textContent=`このサービスは${d.step===.25?"15分":"30分"}刻みで入力してください。`;w.classList.remove("hidden");}units.value=unitFor(k,h);}
+function renderOptions(){const k=service.value;let s="";if(["body","house","outbody","outno"].includes(k)){s='<div class="checks"><label class="check"><input id="first" type="checkbox"> 初回加算（+200単位／月）</label><label class="check"><input id="cap" type="checkbox"> 利用者負担上限額管理加算（+150単位）</label><label class="check"><input id="emergency" type="checkbox"> 緊急時対応加算（+100単位）</label><label class="check"><input id="cert" type="checkbox"> 福祉専門職員等連携加算（+564単位）</label></div>';}else if(["heavy","escort","behavior"].includes(k)){s='<div class="checks"><label class="check"><input id="first" type="checkbox"> 初回加算（+200単位／月）</label><label class="check"><input id="cap" type="checkbox"> 利用者負担上限額管理加算（+150単位）</label><label class="check"><input id="emergency" type="checkbox"> 緊急時対応加算（+100単位）</label></div>';}options.innerHTML=s;}
+service.onchange=refresh;hours.oninput=updateUnits;document.getElementById("customUnits").oninput=updateUnits;
+function baseExtras(){let x=0,tags=[];if(document.getElementById("first")?.checked){x+=200;tags.push("初回加算")}if(document.getElementById("cap")?.checked){x+=150;tags.push("上限額管理")}if(document.getElementById("emergency")?.checked){x+=100;tags.push("緊急時対応")}if(document.getElementById("cert")?.checked){x+=564;tags.push("福祉専門職員等連携")}return{x,tags};}
+function calc(){let k=service.value,h=+hours.value||0;updateUnits();let base=+units.value||0,extra=baseExtras(),before=base+extra.x,factor=1,tags=[...extra.tags];if(document.getElementById("night").checked){factor*=1.25;tags.push("夜間・早朝")}if(document.getElementById("midnight").checked){factor*=1.5;tags.push("深夜")}if(document.getElementById("two").checked){factor*=2;tags.push("2人介助（行動援護：2人の行動援護従事者）")}if(document.getElementById("samebuild").checked){factor*=.9;tags.push("同一建物等×90%")}let adjusted=Math.round(before*factor),rate=+document.getElementById("rate").value||0,treatment=Math.round(adjusted*rate),total=adjusted+treatment,price=+document.getElementById("price").value||0,one=total*price,n=+document.getElementById("count").value||1;last={name:service.options[service.selectedIndex].text+(data[k].fixed?"／1回":`／${fmtTime(h)}`),base,extra:extra.x,adjusted,treatment,total,one,n,month:one*n,tags};document.getElementById("out").classList.remove("hidden");document.getElementById("out").innerHTML=`<div class="row"><span>入力時間</span><b>${data[k].fixed?"1回":fmtTime(h)}</b></div><div class="row"><span>基本報酬</span><b>${base.toLocaleString()}単位</b></div><div class="row"><span>その他加算</span><b>+${extra.x.toLocaleString()}単位</b></div><div class="row"><span>加算・減算後の所定単位</span><b>${adjusted.toLocaleString()}単位</b></div><div class="row"><span>処遇改善加算</span><b>+${treatment.toLocaleString()}単位</b></div><div class="row"><span>合計</span><b>${total.toLocaleString()}単位</b></div><div class="big">1回 約${Math.round(one).toLocaleString()}円</div><div class="muted">${tags.length?tags.map(x=>`<span class="tag">${x}</span>`).join(""):"追加設定なし"}</div>`;}
+function addMonth(){if(!last)calc();let d=document.createElement("div");d.className="item";d.innerHTML=`<b>${last.name}</b><span class="muted">${last.n}回 × 約${Math.round(last.one).toLocaleString()}円</span><br><b>月 約${Math.round(last.month).toLocaleString()}円</b>`;document.getElementById("list").appendChild(d);sumMonth();}
+function sumMonth(){let t=0;document.querySelectorAll("#list .item").forEach(e=>{let m=e.innerText.match(/月 約([0-9,]+)円/);if(m)t+=+m[1].replace(/,/g,"")});let b=document.getElementById("sum");b.classList.remove("hidden");b.innerHTML=`<div class="big">月間合計 約${t.toLocaleString()}円</div>`;}
+function clearMonth(){document.getElementById("list").innerHTML="";document.getElementById("sum").classList.add("hidden");}
+function profit(){if(!last)calc();let wage=+document.getElementById("wage").value||0,h=+document.getElementById("workhours").value||0,c=wage*h,d=last.one-c,b=document.getElementById("profit");b.classList.remove("hidden");b.innerHTML=`<div class="row"><span>サービス報酬</span><b>${Math.round(last.one).toLocaleString()}円</b></div><div class="row"><span>人件費</span><b>-${Math.round(c).toLocaleString()}円</b></div><div class="big">差引 約${Math.round(d).toLocaleString()}円</div><div class="muted">※交通費・社会保険・有給・管理費等は含みません。</div>`;}
+let last=null;refresh();
+</script>
+</body></html>
